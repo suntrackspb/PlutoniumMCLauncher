@@ -62,7 +62,7 @@ jobs:
         run: npm run build
 
       - name: Package ${{ matrix.name }} (${{ matrix.target }})
-        run: npx electron-builder ${{ matrix.target }} -p always
+        run: npx electron-builder ${{ matrix.target }} -p never
 
       - name: List dist
         run: |
@@ -76,5 +76,54 @@ jobs:
             dist/**
           if-no-files-found: error
 
-  # Доп. джоба релиза больше не нужна — electron-builder публикует напрямую
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts (win)
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-win
+          path: downloaded/win
+        continue-on-error: true
+
+      - name: Download artifacts (mac arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-mac-arm64
+          path: downloaded/mac-arm64
+        continue-on-error: true
+
+      - name: Download artifacts (mac x64)
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-mac-x64
+          path: downloaded/mac-x64
+        continue-on-error: true
+
+      - name: Download artifacts (linux)
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-linux
+          path: downloaded/linux
+        continue-on-error: true
+
+      - name: Read version from package.json
+        id: pkg
+        run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+      - name: Create Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.pkg.outputs.version }}
+          name: v${{ steps.pkg.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            downloaded/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
