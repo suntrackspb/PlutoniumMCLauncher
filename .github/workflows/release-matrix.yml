@@ -51,7 +51,7 @@ jobs:
         run: npm run build
 
       - name: Package ${{ matrix.name }} (${{ matrix.target }})
-        run: npx electron-builder ${{ matrix.target }} -p never
+        run: npx electron-builder ${{ matrix.target }} -p always
 
       - name: List dist
         run: |
@@ -65,36 +65,5 @@ jobs:
             dist/**
           if-no-files-found: error
 
-  release:
-    name: Create Release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts (win)
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts-win
-          path: downloaded/win
-
-      - name: Download artifacts (mac)
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts-mac
-          path: downloaded/mac
-
-      - name: Download artifacts (linux)
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts-linux
-          path: downloaded/linux
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            downloaded/win/**
-            downloaded/mac/**
-            downloaded/linux/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # Доп. джоба релиза больше не нужна — electron-builder публикует напрямую
 

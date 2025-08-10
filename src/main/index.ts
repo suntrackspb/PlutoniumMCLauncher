@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -8,6 +8,8 @@ import { registerClientHandlers } from './ipc/registerClientHandlers'
 import { registerServerHandlers } from './ipc/registerServerHandlers'
 import { registerGameHandlers } from './ipc/registerGameHandlers'
 import { registerSettingsHandlers } from './ipc/registerSettingsHandlers'
+import { autoUpdater } from 'electron-updater'
+import log from 'electron-log'
 
 const APP_TITLE = 'Plutonium Minecraft Launcher'
 
@@ -78,6 +80,32 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  // Автообновления: проверяем после ready, логируем события
+  try {
+    log.transports.file.level = 'info'
+    autoUpdater.logger = log
+    autoUpdater.autoDownload = true
+    autoUpdater.allowPrerelease = false
+
+    autoUpdater.on('checking-for-update', () => log.info('checking-for-update'))
+    autoUpdater.on('update-available', (i) => log.info('update-available', i?.version))
+    autoUpdater.on('update-not-available', () => log.info('update-not-available'))
+    autoUpdater.on('download-progress', (p) => log.info(`download-progress ${Math.round(p.percent)}%`))
+    autoUpdater.on('error', (e) => log.error('update-error', e))
+    autoUpdater.on('update-downloaded', async () => {
+      const res = await dialog.showMessageBox({
+        type: 'question', buttons: ['Перезапустить сейчас', 'Позже'], defaultId: 0,
+        message: 'Доступно обновление', detail: 'Перезапустить приложение для установки?'
+      })
+      if (res.response === 0) {
+        autoUpdater.quitAndInstall()
+      }
+    })
+    autoUpdater.checkForUpdatesAndNotify()
+  } catch (e) {
+    console.error('autoUpdater init error', e)
+  }
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
