@@ -29,6 +29,16 @@ export function loadTokens(): AuthTokens | null {
     }
 }
 
+export function clearTokens(): void {
+    try {
+        if (fs.existsSync(tokenFile)) {
+            fs.removeSync(tokenFile)
+        }
+    } catch {
+        // ignore filesystem errors on logout
+    }
+}
+
 export async function login(username: string, password: string): Promise<AuthTokens> {
     const { data } = await api.post('/launcher', withValidator({
         method: 'authorization',

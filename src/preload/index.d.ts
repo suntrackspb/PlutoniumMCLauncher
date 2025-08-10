@@ -45,6 +45,7 @@ declare global {
         login: (username: string, password: string) => Promise<AuthTokens>
         register: (username: string, password: string, email: string) => Promise<{ message: string }>
         loadTokens: () => Promise<AuthTokens | null>
+        logout: () => Promise<{ ok: boolean }>
       }
       mods: {
         list: () => Promise<ModItem[]>

@@ -56,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         }
     }, [login])
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
+        await window.api.auth.logout()
         setTokens(null)
     }, [])
 

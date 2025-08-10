@@ -2,6 +2,7 @@ export const IPC_CHANNELS = {
     AUTH_LOGIN: 'auth/login',
     AUTH_REGISTER: 'auth/register',
     AUTH_LOAD: 'auth/loadTokens',
+    AUTH_LOGOUT: 'auth/logout',
     MODS_LIST: 'mods/list',
     MODS_LIST_WITH_STATUS: 'mods/listWithStatus',
     MODS_SYNC_REQUIRED: 'mods/syncRequired',

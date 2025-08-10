@@ -9,7 +9,8 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, { username, password }),
     register: (username: string, password: string, email: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_REGISTER, { username, password, email }),
-    loadTokens: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOAD)
+    loadTokens: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOAD),
+    logout: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT)
   },
   mods: {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.MODS_LIST),

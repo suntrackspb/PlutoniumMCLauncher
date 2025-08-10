@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from './channels'
-import { login, register, loadTokens } from '../services/authService'
+import { login, register, loadTokens, clearTokens } from '../services/authService'
 import { getHardwareIds } from '../services/hardwareService'
 
 export function registerAuthHandlers(): void {
@@ -21,5 +21,10 @@ export function registerAuthHandlers(): void {
 
     ipcMain.handle(IPC_CHANNELS.AUTH_LOAD, async () => {
         return loadTokens()
+    })
+
+    ipcMain.handle(IPC_CHANNELS.AUTH_LOGOUT, async () => {
+        await clearTokens()
+        return { ok: true }
     })
 }
