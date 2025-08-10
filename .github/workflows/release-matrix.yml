@@ -6,6 +6,10 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -115,15 +119,36 @@ jobs:
         id: pkg
         run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
 
-      - name: Create Release and upload assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.pkg.outputs.version }}
-          name: v${{ steps.pkg.outputs.version }}
-          draft: false
-          prerelease: false
-          files: |
-            downloaded/**
+      - name: Ensure release exists (idempotent)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG=v${{ steps.pkg.outputs.version }}
+          # create if not exists, else update title
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" -t "$TAG" -n "Automated release $TAG"
+          else
+            gh release edit "$TAG" -t "$TAG" -n "Automated release $TAG"
+          fi
+
+      - name: Collect files to upload
+        id: files
+        run: |
+          set -e
+          find downloaded -type f \( \
+            -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" \
+            -o -name "*.blockmap" -o -name "*.yml" -o -name "*.zsync" \) \
+            | tr '\n' '\0' | xargs -0 printf '%s\n' > upload-list.txt
+          echo "count=$(wc -l < upload-list.txt)" >> $GITHUB_OUTPUT
+
+      - name: Upload assets via gh CLI (throttled)
+        if: steps.files.outputs.count != '0'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG=v${{ steps.pkg.outputs.version }}
+          # Upload in one command to minimize API calls
+          gh release upload "$TAG" $(cat upload-list.txt) --clobber
 
