@@ -87,6 +87,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout repo (for package.json & gh defaults)
+        uses: actions/checkout@v4
       - name: Download artifacts (win)
         uses: actions/download-artifact@v4
         with:
@@ -117,7 +119,7 @@ jobs:
 
       - name: Read version from package.json
         id: pkg
-        run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
 
       - name: Ensure release exists (idempotent)
         env:
@@ -126,10 +128,10 @@ jobs:
           set -e
           TAG=v${{ steps.pkg.outputs.version }}
           # create if not exists, else update title
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" -t "$TAG" -n "Automated release $TAG"
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" -t "$TAG" -n "Automated release $TAG" --repo "$GITHUB_REPOSITORY"
           else
-            gh release edit "$TAG" -t "$TAG" -n "Automated release $TAG"
+            gh release edit "$TAG" -t "$TAG" -n "Automated release $TAG" --repo "$GITHUB_REPOSITORY"
           fi
 
       - name: Collect files to upload
@@ -150,5 +152,5 @@ jobs:
           set -e
           TAG=v${{ steps.pkg.outputs.version }}
           # Upload in one command to minimize API calls
-          gh release upload "$TAG" $(cat upload-list.txt) --clobber
+          gh release upload "$TAG" $(cat upload-list.txt) --clobber --repo "$GITHUB_REPOSITORY"
 
