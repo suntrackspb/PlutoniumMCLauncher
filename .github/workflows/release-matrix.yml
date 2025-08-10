@@ -161,7 +161,7 @@ jobs:
           # Build a bash array with null-delimited filenames to preserve spaces
           # Берём ТОЛЬКО финальные артефакты для пользователей
           mapfile -d '' files < <(find downloaded -type f \
-            \( -name "*win-install*.exe" -o -name "*win-portable*.exe" -o -name "*mac*.dmg" -o -name "*linux*.AppImage" \) -print0)
+            \( -name "*win-install*.exe" -o -name "*win-portable*.exe" -o -name "*mac-*.dmg" -o -name "*linux*.AppImage" \) -print0)
           echo "Found ${#files[@]} files to upload"
           if (( ${#files[@]} == 0 )); then
             echo "No files found to upload"; exit 0
