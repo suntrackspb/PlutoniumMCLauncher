@@ -1,0 +1,100 @@
+name: Build (Win/Mac/Linux) and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  # Подставляем значения из Settings → Actions → Variables/Secrets
+  BACKEND_BASE_URL: ${{ vars.BACKEND_BASE_URL }}
+  INSTALL_DIR_NAME: ${{ vars.INSTALL_DIR_NAME }}
+  APP_KEY: ${{ secrets.APP_KEY }}
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            target: '--win nsis portable --x64'
+            artifact: artifacts-win
+          - os: macos-latest
+            name: macOS
+            target: '--mac dmg'
+            artifact: artifacts-mac
+          - os: ubuntu-latest
+            name: Linux
+            target: '--linux AppImage'
+            artifact: artifacts-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (vite + electron)
+        run: npm run build
+
+      - name: Package ${{ matrix.name }} (${{ matrix.target }})
+        run: npx electron-builder ${{ matrix.target }} -p never
+
+      - name: List dist
+        run: |
+          echo "Dist:" && ls -la dist || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/**
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts (win)
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-win
+          path: downloaded/win
+
+      - name: Download artifacts (mac)
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-mac
+          path: downloaded/mac
+
+      - name: Download artifacts (linux)
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-linux
+          path: downloaded/linux
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            downloaded/win/**
+            downloaded/mac/**
+            downloaded/linux/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

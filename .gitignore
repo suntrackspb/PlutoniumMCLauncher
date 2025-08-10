@@ -1,0 +1,38 @@
+# --- OS / Editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# --- Assistant/Local tooling ---
+.cursor/
+
+# --- Environment / Secrets ---
+.env
+.env.*
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Node / Electron / Vite (Frontend_Minecraft) ---
+node_modules/
+dist/
+out/
+release/
+coverage/
+.cache/
+.vite/
+*.tsbuildinfo
+
+# Keep electron-builder "build/" (icons/entitlements) – DO NOT ignore Frontend_Minecraft/build
+
+# --- Project-specific large/binary assets ---
+plutonium.zip
+PLUTONIUM-MINECRAFT-8-10-2025.png
+minecraft_title_cyrillic.ttf
+

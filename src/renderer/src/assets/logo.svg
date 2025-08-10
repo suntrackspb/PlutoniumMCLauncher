@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 140" width="100%" height="auto">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe34b"/>
+      <stop offset="1" stop-color="#ff9c1a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Радиоактивный знак -->
+  <circle cx="70" cy="70" r="70" fill="#ffd84d" stroke="#000" stroke-width="6"/>
+  <g fill="#000">
+    <circle cx="70" cy="70" r="14"/>
+    <path d="M89.0526,59 A22,22 0 0 1 89.0526,81 L125.4256,102 A64,64 0 0 0 125.4256,38 Z" transform="rotate(90 70 70)"/>
+    <path d="M89.0526,59 A22,22 0 0 1 89.0526,81 L125.4256,102 A64,64 0 0 0 125.4256,38 Z" transform="rotate(210 70 70)"/>
+    <path d="M89.0526,59 A22,22 0 0 1 89.0526,81 L125.4256,102 A64,64 0 0 0 125.4256,38 Z" transform="rotate(330 70 70)"/>
+  </g>
+
+  <!-- Текст -->
+  <g style="paint-order: stroke fill; shape-rendering: crispEdges;">
+    <text x="164" y="50" font-size="72" font-weight="700"
+          fill="url(#gold)" stroke="#000" stroke-width="6" stroke-linejoin="miter"
+          font-family="Minecraft, Minecrafter, Minecraftia, 'Press Start 2P', 'VT323', 'Courier New', monospace">
+      PLUTONIUM
+    </text>
+    <text x="164" y="134" font-size="56" font-weight="700"
+          fill="url(#gold)" stroke="#000" stroke-width="5" stroke-linejoin="miter"
+          font-family="Minecraft, Minecrafter, Minecraftia, 'Press Start 2P', 'VT323', 'Courier New', monospace">
+      MINECRAFT
+    </text>
+  </g>
+</svg>
