@@ -16,6 +16,9 @@ env:
 jobs:
   build:
     name: Build ${{ matrix.name }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -55,7 +58,7 @@ jobs:
 
       - name: List dist
         run: |
-          echo "Dist:" && ls -la dist || true
+          echo "Dist:" && ls -al dist || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
