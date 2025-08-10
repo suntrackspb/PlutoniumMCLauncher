@@ -152,23 +152,20 @@ jobs:
             gh release edit "$TAG" -t "$TAG" -n "Automated release $TAG" --repo "$GITHUB_REPOSITORY"
           fi
 
-      - name: Collect files to upload
-        id: files
-        run: |
-          set -e
-          find downloaded -type f \( \
-            -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" \
-            -o -name "*.blockmap" -o -name "*.yml" -o -name "*.zsync" \) \
-            | tr '\n' '\0' | xargs -0 printf '%s\n' > upload-list.txt
-          echo "count=$(wc -l < upload-list.txt)" >> $GITHUB_OUTPUT
-
-      - name: Upload assets via gh CLI (throttled)
-        if: steps.files.outputs.count != '0'
+      - name: Upload assets via gh CLI (handles spaces)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
           TAG=v${{ steps.pkg.outputs.version }}
-          # Upload in one command to minimize API calls
-          gh release upload "$TAG" $(cat upload-list.txt) --clobber --repo "$GITHUB_REPOSITORY"
+          # Build a bash array with null-delimited filenames to preserve spaces
+          mapfile -d '' files < <(find downloaded -type f \
+            \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" \
+               -o -name "*.blockmap" -o -name "*.yml" -o -name "*.zsync" \) -print0)
+          echo "Found ${#files[@]} files to upload"
+          if (( ${#files[@]} > 0 )); then
+            gh release upload "$TAG" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            echo "No files found to upload"
+          fi
 
