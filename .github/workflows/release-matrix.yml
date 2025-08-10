@@ -179,10 +179,15 @@ jobs:
             echo "No files found to upload"; exit 0
           fi
 
+          # Отключаем set -e для цикла загрузки, чтобы не падать на ошибках отдельных файлов
+          set +e
+          
           # Skip duplicates by asset name (portable/nsis may generate same YAML)
           declare -A seen
           uploaded=0
           skipped=0
+          errors=0
+          
           for f in "${files[@]}"; do
             name=$(basename "$f")
             if [[ -n ${seen[$name]} ]]; then
@@ -196,28 +201,45 @@ jobs:
             # Проверяем что файл существует и читается
             if [[ ! -f "$f" ]]; then
               echo "Error: File $f does not exist"
-              ((skipped++))
+              ((errors++))
               continue
             fi
             
             if [[ ! -r "$f" ]]; then
               echo "Error: File $f is not readable"
-              ((skipped++))
+              ((errors++))
               continue
             fi
             
             # Загружаем с детальным выводом ошибок
-            if gh release upload "$TAG" "$f" --clobber --repo "$GITHUB_REPOSITORY" 2>&1; then
+            upload_output=$(gh release upload "$TAG" "$f" --clobber --repo "$GITHUB_REPOSITORY" 2>&1)
+            upload_result=$?
+            
+            if [[ $upload_result -eq 0 ]]; then
               echo "✓ Successfully uploaded: $name"
               ((uploaded++))
             else
               echo "✗ Failed to upload: $name"
-              ((skipped++))
+              echo "Error details: $upload_output"
+              ((errors++))
             fi
           done
-          echo "Final result: Uploaded: $uploaded, Skipped: $skipped"
+          
+          echo "Final result: Uploaded: $uploaded, Skipped: $skipped, Errors: $errors"
           
           # Показываем итоговый список ассетов в релизе
           echo "Assets in release $TAG:"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' || true
+          
+          # Возвращаем успешный код, если хотя бы один файл загружен
+          if (( uploaded > 0 )); then
+            echo "✅ Release completed successfully with $uploaded files uploaded"
+            exit 0
+          elif (( errors > 0 )); then
+            echo "❌ Release failed - no files uploaded due to errors"
+            exit 1
+          else
+            echo "⚠️ No files to upload"
+            exit 0
+          fi
 
