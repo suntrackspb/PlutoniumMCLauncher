@@ -42,6 +42,6 @@ npmRebuild: false
 publish:
   - provider: github
     owner: suntrackspb
-    repo: PlutoniumMC-Launcher
+    repo: PlutoniumMCLauncher
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
