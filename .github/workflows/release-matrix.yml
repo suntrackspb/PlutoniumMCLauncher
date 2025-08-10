@@ -22,8 +22,26 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
+  prepare:
+    name: Prepare (fast checks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check version
+        run: |
+          echo "Version: $(jq -r .version package.json)"
+      - name: Dry-run release check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=v$(jq -r .version package.json)
+          echo "Tag: $TAG"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || echo "Release $TAG will be created"
+
   build:
     name: Build ${{ matrix.name }}
+    needs: prepare
     defaults:
       run:
         shell: bash
@@ -82,7 +100,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -119,7 +137,7 @@ jobs:
 
       - name: Read version from package.json
         id: pkg
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
 
       - name: Ensure release exists (idempotent)
         env:
