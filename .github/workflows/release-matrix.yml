@@ -28,12 +28,16 @@ jobs:
             target: '--win nsis portable --x64'
             artifact: artifacts-win
           - os: macos-latest
-            name: macOS
-            target: '--mac dmg'
-            artifact: artifacts-mac
+            name: macOS (arm64)
+            target: '--mac dmg zip --arm64'
+            artifact: artifacts-mac-arm64
+          - os: macos-latest
+            name: macOS (x64)
+            target: '--mac dmg zip --x64'
+            artifact: artifacts-mac-x64
           - os: ubuntu-latest
             name: Linux
-            target: '--linux AppImage'
+            target: '--linux AppImage --x64'
             artifact: artifacts-linux
     runs-on: ${{ matrix.os }}
     steps:
@@ -48,7 +52,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install deps
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Build (vite + electron)
         run: npm run build
