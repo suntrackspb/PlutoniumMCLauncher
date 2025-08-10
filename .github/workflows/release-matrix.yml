@@ -158,11 +158,23 @@ jobs:
         run: |
           set -e
           TAG=v${{ steps.pkg.outputs.version }}
+          
+          # Проверяем что релиз существует
+          echo "Checking release $TAG exists..."
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" || {
+            echo "Error: Release $TAG does not exist"
+            exit 1
+          }
+          
           # Build a bash array with null-delimited filenames to preserve spaces
           # Берём ТОЛЬКО финальные артефакты для пользователей
           mapfile -d '' files < <(find downloaded -type f \
             \( -name "*win-install*.exe" -o -name "*win-portable*.exe" -o -name "*mac-*.dmg" -o -name "*linux*.AppImage" \) -print0)
-          echo "Found ${#files[@]} files to upload"
+          echo "Found ${#files[@]} files to upload:"
+          for f in "${files[@]}"; do
+            echo "  - $(basename "$f") ($(du -h "$f" | cut -f1))"
+          done
+          
           if (( ${#files[@]} == 0 )); then
             echo "No files found to upload"; exit 0
           fi
@@ -179,14 +191,33 @@ jobs:
               continue
             fi
             seen[$name]=1
-            echo "Upload: $name"
-            # If already exists (422), do not fail the job
-            if gh release upload "$TAG" "$f" --clobber --repo "$GITHUB_REPOSITORY"; then
+            echo "Uploading: $name ($(du -h "$f" | cut -f1))..."
+            
+            # Проверяем что файл существует и читается
+            if [[ ! -f "$f" ]]; then
+              echo "Error: File $f does not exist"
+              ((skipped++))
+              continue
+            fi
+            
+            if [[ ! -r "$f" ]]; then
+              echo "Error: File $f is not readable"
+              ((skipped++))
+              continue
+            fi
+            
+            # Загружаем с детальным выводом ошибок
+            if gh release upload "$TAG" "$f" --clobber --repo "$GITHUB_REPOSITORY" 2>&1; then
+              echo "✓ Successfully uploaded: $name"
               ((uploaded++))
             else
-              echo "Warn: failed to upload $name (possibly exists); skipping"
+              echo "✗ Failed to upload: $name"
               ((skipped++))
             fi
           done
-          echo "Uploaded: $uploaded, Skipped: $skipped"
+          echo "Final result: Uploaded: $uploaded, Skipped: $skipped"
+          
+          # Показываем итоговый список ассетов в релизе
+          echo "Assets in release $TAG:"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' || true
 
