@@ -159,13 +159,34 @@ jobs:
           set -e
           TAG=v${{ steps.pkg.outputs.version }}
           # Build a bash array with null-delimited filenames to preserve spaces
+          # Берём ТОЛЬКО финальные артефакты для пользователей
           mapfile -d '' files < <(find downloaded -type f \
-            \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" \
-               -o -name "*.blockmap" -o -name "*.yml" -o -name "*.zsync" \) -print0)
+            \( -name "*win-install*.exe" -o -name "*win-portable*.exe" -o -name "*mac*.dmg" -o -name "*linux*.AppImage" \) -print0)
           echo "Found ${#files[@]} files to upload"
-          if (( ${#files[@]} > 0 )); then
-            gh release upload "$TAG" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
-          else
-            echo "No files found to upload"
+          if (( ${#files[@]} == 0 )); then
+            echo "No files found to upload"; exit 0
           fi
+
+          # Skip duplicates by asset name (portable/nsis may generate same YAML)
+          declare -A seen
+          uploaded=0
+          skipped=0
+          for f in "${files[@]}"; do
+            name=$(basename "$f")
+            if [[ -n ${seen[$name]} ]]; then
+              echo "Skip duplicate name: $name"
+              ((skipped++))
+              continue
+            fi
+            seen[$name]=1
+            echo "Upload: $name"
+            # If already exists (422), do not fail the job
+            if gh release upload "$TAG" "$f" --clobber --repo "$GITHUB_REPOSITORY"; then
+              ((uploaded++))
+            else
+              echo "Warn: failed to upload $name (possibly exists); skipping"
+              ((skipped++))
+            fi
+          done
+          echo "Uploaded: $uploaded, Skipped: $skipped"
 
