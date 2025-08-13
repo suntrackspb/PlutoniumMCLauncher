@@ -24,12 +24,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
 
     useEffect(() => {
         let mounted = true
-        window.api.auth
-            .loadTokens()
-            .then((t) => {
-                if (mounted) setTokens(t)
-            })
-            .finally(() => mounted && setLoading(false))
+            ; (async () => {
+                try {
+                    const t = await window.api.auth.loadTokens()
+                    if (mounted) setTokens(t)
+                    if (t) {
+                        const v = await window.api.auth.validate()
+                        if (!v.ok) {
+                            await window.api.auth.logout()
+                            if (mounted) setTokens(null)
+                        }
+                    }
+                } finally {
+                    mounted && setLoading(false)
+                }
+            })()
         return () => {
             mounted = false
         }
@@ -39,6 +48,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         setError(null)
         try {
             const t = await window.api.auth.login(username, password)
+            const v = await window.api.auth.validate()
+            if (!v.ok) {
+                await window.api.auth.logout()
+                setTokens(null)
+                setError('Доступ запрещен')
+                return
+            }
             setTokens(t)
         } catch (e: any) {
             setError(e?.response?.data?.message || 'Ошибка авторизации')

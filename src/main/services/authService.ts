@@ -39,6 +39,18 @@ export function clearTokens(): void {
     }
 }
 
+export async function validateTokens(): Promise<{ ok: boolean; reason?: string }> {
+    const t = loadTokens()
+    if (!t) return { ok: false, reason: 'NO_TOKENS' }
+    try {
+        await api.get('/profile', { params: { uuid: t.uuid } })
+        return { ok: true }
+    } catch {
+        clearTokens()
+        return { ok: false, reason: 'INVALID_OR_DELETED' }
+    }
+}
+
 export async function login(username: string, password: string): Promise<AuthTokens> {
     const { data } = await api.post('/launcher', withValidator({
         method: 'authorization',
