@@ -12,6 +12,7 @@ export const IPC_CHANNELS = {
     CLIENT_INSTALL: 'client/install',
     CLIENT_IS_INSTALLED: 'client/isInstalled',
     CLIENT_REINSTALL: 'client/reinstall',
+    CLIENT_LIST_VERSIONS: 'client/listVersions',
     SERVER_STATUS: 'server/status',
     GAME_VALIDATE_JAVA: 'game/validateJava',
     GAME_LAUNCH: 'game/launch',

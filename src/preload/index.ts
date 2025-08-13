@@ -25,6 +25,7 @@ const api = {
     isInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLIENT_IS_INSTALLED),
     reinstall: () => ipcRenderer.invoke(IPC_CHANNELS.CLIENT_REINSTALL),
     openDir: () => ipcRenderer.invoke(IPC_CHANNELS.GAME_OPEN_DIR),
+    listVersions: () => ipcRenderer.invoke(IPC_CHANNELS.CLIENT_LIST_VERSIONS),
     onInstallProgress: (cb: (payload: { stage: string; percent?: number }) => void) => {
       const listener = (_: unknown, payload: { stage: string; percent?: number }) => cb(payload)
       ipcRenderer.on('client/install/progress', listener)
