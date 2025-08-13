@@ -13,6 +13,7 @@ export type ClientInfo = {
     hash: string // SHA1 (предпочтительно); поддерживается MD5 для обратной совместимости
     required_java: string
     description: string
+    loader?: string
 }
 
 export function getInstallDir(): string {
@@ -23,6 +24,47 @@ export function getInstallDir(): string {
 export function getGameDir(): string {
     // Можно разнести клиент по подпапкам версии, если потребуется
     return getInstallDir()
+}
+
+export type InstalledVersion = {
+    id: string
+    hasJar: boolean
+    hasJson: boolean
+    kind: 'vanilla' | 'forge' | 'fabric' | 'quilt' | 'neoforge' | 'unknown'
+}
+
+export async function listAvailableVersions(): Promise<InstalledVersion[]> {
+    const dir = join(getGameDir(), 'versions')
+    const out: InstalledVersion[] = []
+    try {
+        if (!(await fs.pathExists(dir))) return out
+        const entries = await fs.readdir(dir, { withFileTypes: true })
+        for (const e of entries) {
+            if (!e.isDirectory()) continue
+            const id = e.name
+            const vDir = join(dir, id)
+            const jar = join(vDir, `${id}.jar`)
+            const json = join(vDir, `${id}.json`)
+            const hasJar = await fs.pathExists(jar)
+            const hasJson = await fs.pathExists(json)
+            const low = id.toLowerCase()
+            const kind: InstalledVersion['kind'] = low.includes('neoforge')
+                ? 'neoforge'
+                : low.includes('forge')
+                    ? 'forge'
+                    : low.includes('fabric')
+                        ? 'fabric'
+                        : low.includes('quilt')
+                            ? 'quilt'
+                            : /\d+\.\d+/.test(low)
+                                ? 'vanilla'
+                                : 'unknown'
+            out.push({ id, hasJar, hasJson, kind })
+        }
+        return out.sort((a, b) => a.id.localeCompare(b.id))
+    } catch {
+        return out
+    }
 }
 
 export function getModsDir(): string {
@@ -51,13 +93,9 @@ export async function isClientInstalled(): Promise<boolean> {
     const exists = await fs.pathExists(dir)
     if (!exists) return false
     // Требуемые элементы для валидного клиента
-    const requiredDirs = ['bin', 'libraries']
-    const requiredFiles = ['options.txt']
+    const requiredDirs = ['runtime', 'libraries']
     for (const d of requiredDirs) {
         if (!(await fs.pathExists(join(dir, d)))) return false
-    }
-    for (const f of requiredFiles) {
-        if (!(await fs.pathExists(join(dir, f)))) return false
     }
     return true
 }

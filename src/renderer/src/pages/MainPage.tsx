@@ -59,6 +59,7 @@ function GameTab(): React.JSX.Element {
     const [launchNote, setLaunchNote] = useState<string | null>(null)
     const [syncInfo, setSyncInfo] = useState<{ installed: number; removed: number; skipped: number } | null>(null)
     const [installed, setInstalled] = useState<boolean>(false)
+    const [serverRefreshing, setServerRefreshing] = useState<boolean>(false)
 
     useEffect(() => {
         window.api.client.info().then(setClient)
@@ -107,6 +108,16 @@ function GameTab(): React.JSX.Element {
         else await install()
     }
 
+    const refreshServerStatus = async () => {
+        setServerRefreshing(true)
+        try {
+            const next = await window.api.server.status()
+            setStatus(next)
+        } finally {
+            setServerRefreshing(false)
+        }
+    }
+
     return (
         <>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
@@ -116,85 +127,199 @@ function GameTab(): React.JSX.Element {
                     style={{ height: 180, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' }}
                 />
             </div>
-            <Panel>
-                <h2 style={{ marginTop: 0 }}>Игра</h2>
-                {client && (
-                    <div style={{ opacity: 0.9 }}>
-                        Клиент: v{client.version} • Требуемая Java: {client.required_java}
-                        <div style={{ fontSize: 12, color: '#e0e0ff' }}>{client.description}</div>
-                    </div>
-                )}
-                {status && (
-                    <div style={{ marginTop: 8 }}>
-                        Сервер: {status.online ? 'Онлайн' : 'Оффлайн'} • Игроков: {status.players?.online || 0}/{
-                            status.players?.max || 0
-                        }
-                    </div>
-                )}
-                {java && (
-                    <div style={{ marginTop: 8 }}>
-                        Java: {java.ok ? `OK (${java.version})` : `Не готово: ${java.reason || 'неизвестно'}`}
-                    </div>
-                )}
-                <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button
-                        onClick={primaryAction}
-                        disabled={busy}
-                        style={{
-                            padding: '12px 18px',
-                            borderRadius: 10,
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: 'white',
-                            background: 'linear-gradient(135deg, #6a8cff 0%, #8a63d2 100%)'
-                        }}
-                    >
-                        {busy ? (installed ? 'Проверка…' : 'Установка…') : installed ? 'Играть' : 'Установить'}
-                    </button>
-                    {installed && (
+
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: 16,
+                    alignItems: 'start'
+                }}
+            >
+                {/* Левая колонка: Игра (клиент, Java, запуск) */}
+                <Panel>
+                    <h2 style={{ marginTop: 0 }}>Игра</h2>
+                    {client && (
+                        <div style={{ opacity: 0.9 }}>
+                            Клиент: v{client.version}
+                            {client.loader ? ` • ${client.loader}` : ''}
+                            {' '}• Требуемая Java: {client.required_java}
+                            <div style={{ fontSize: 12, color: '#e0e0ff' }}>{client.description}</div>
+                        </div>
+                    )}
+                    {java && (
+                        <div style={{ marginTop: 8 }}>
+                            Java: {java.ok ? `OK (${java.version})` : `Не готово: ${java.reason || 'неизвестно'}`}
+                        </div>
+                    )}
+
+                    <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         <button
-                            onClick={reinstall}
+                            onClick={primaryAction}
                             disabled={busy}
                             style={{
                                 padding: '12px 18px',
                                 borderRadius: 10,
-                                border: '1px solid rgba(255,255,255,0.35)',
+                                border: 'none',
                                 cursor: 'pointer',
                                 color: 'white',
-                                background: 'transparent'
+                                background: 'linear-gradient(135deg, #6a8cff 0%, #8a63d2 100%)'
                             }}
                         >
-                            Переустановить
+                            {busy ? (installed ? 'Проверка…' : 'Установка…') : installed ? 'Играть' : 'Установить'}
                         </button>
-                    )}
-                </div>
-                {progress && (
-                    <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 12, marginBottom: 4 }}>Этап: {progress.stage}</div>
-                        <div style={{ background: 'rgba(255,255,255,0.2)', height: 10, borderRadius: 6 }}>
-                            <div
+                        {installed && (
+                            <button
+                                onClick={reinstall}
+                                disabled={busy}
                                 style={{
-                                    width: `${progress.percent || 0}%`,
-                                    height: '100%',
-                                    borderRadius: 6,
-                                    background: 'linear-gradient(135deg, #6a8cff 0%, #8a63d2 100%)',
-                                    transition: 'width 0.2s ease'
+                                    padding: '12px 18px',
+                                    borderRadius: 10,
+                                    border: '1px solid rgba(255,255,255,0.35)',
+                                    cursor: 'pointer',
+                                    color: 'white',
+                                    background: 'transparent'
                                 }}
-                            />
-                        </div>
-                    </div>
-                )}
-                {(launchNote || syncInfo) && (
-                    <div style={{ marginTop: 12, fontSize: 12, opacity: 0.9 }}>
-                        {syncInfo && (
-                            <div>
-                                Синхронизация модов: установлено {syncInfo.installed}, удалено {syncInfo.removed}, пропущено {syncInfo.skipped}
-                            </div>
+                            >
+                                Переустановить
+                            </button>
                         )}
-                        {launchNote && <div>{launchNote}</div>}
                     </div>
-                )}
-            </Panel>
+
+                    {progress && (
+                        <div style={{ marginTop: 12 }}>
+                            <div style={{ fontSize: 12, marginBottom: 4 }}>Этап: {progress.stage}</div>
+                            <div style={{ background: 'rgba(255,255,255,0.2)', height: 10, borderRadius: 6 }}>
+                                <div
+                                    style={{
+                                        width: `${progress.percent || 0}%`,
+                                        height: '100%',
+                                        borderRadius: 6,
+                                        background: 'linear-gradient(135deg, #6a8cff 0%, #8a63d2 100%)',
+                                        transition: 'width 0.2s ease'
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    {(launchNote || syncInfo) && (
+                        <div style={{ marginTop: 12, fontSize: 12, opacity: 0.9 }}>
+                            {syncInfo && (
+                                <div>
+                                    Синхронизация модов: установлено {syncInfo.installed}, удалено {syncInfo.removed}, пропущено {syncInfo.skipped}
+                                </div>
+                            )}
+                            {launchNote && <div>{launchNote}</div>}
+                        </div>
+                    )}
+                </Panel>
+
+                {/* Правая колонка: Сервер (отдельная карточка) */}
+                <Panel>
+                    <h2 style={{ marginTop: 0 }}>Сервер</h2>
+                    {!status && <div style={{ opacity: 0.8 }}>Загрузка статуса…</div>}
+                    {status && (
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                <div
+                                    style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: 999,
+                                        background: status.online ? '#41d392' : '#ff6b6b',
+                                    }}
+                                />
+                                <div style={{ fontWeight: 700 }}>{status.online ? 'Онлайн' : 'Оффлайн'}</div>
+                                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <button
+                                        onClick={refreshServerStatus}
+                                        disabled={serverRefreshing}
+                                        title="Обновить"
+                                        style={{
+                                            padding: '6px 8px',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(255,255,255,0.25)',
+                                            background: 'transparent',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            opacity: serverRefreshing ? 0.6 : 1
+                                        }}
+                                    >
+                                        {serverRefreshing ? '⏳' : '🔄'}
+                                    </button>
+                                    {status.version && (
+                                        <span
+                                            style={{
+                                                fontSize: 12,
+                                                padding: '2px 8px',
+                                                borderRadius: 999,
+                                                background: 'rgba(255,255,255,0.08)',
+                                                border: '1px solid rgba(255,255,255,0.18)'
+                                            }}
+                                        >
+                                            {status.version}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8 }}>
+                                <div style={{ opacity: 0.85 }}>Игроки</div>
+                                <div>{status.players?.online ?? 0}/{status.players?.max ?? 0}</div>
+
+                                {typeof status.latency_ms === 'number' && (
+                                    <>
+                                        <div style={{ opacity: 0.85 }}>Пинг</div>
+                                        <div>{Math.round(status.latency_ms as number)} мс</div>
+                                    </>
+                                )}
+
+                                {(status.host || status.port) && (
+                                    <>
+                                        <div style={{ opacity: 0.85 }}>Адрес</div>
+                                        <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace' }}>
+                                            {status.host ?? '—'}{status.port ? `:${status.port}` : ''}
+                                        </div>
+                                    </>
+                                )}
+
+                                {status.motd && (
+                                    <>
+                                        <div style={{ opacity: 0.85 }}>MOTD</div>
+                                        <div style={{ opacity: 0.9 }}>{status.motd}</div>
+                                    </>
+                                )}
+                            </div>
+
+                            {status.players?.sample && status.players.sample.length > 0 && (
+                                <div style={{ marginTop: 10 }}>
+                                    <div style={{ opacity: 0.85, marginBottom: 6 }}>Онлайн сейчас</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {status.players.sample.map((p) => (
+                                            <span
+                                                key={p}
+                                                style={{
+                                                    fontSize: 12,
+                                                    padding: '4px 8px',
+                                                    borderRadius: 999,
+                                                    background: 'rgba(255,255,255,0.08)',
+                                                    border: '1px solid rgba(255,255,255,0.18)'
+                                                }}
+                                            >
+                                                {p}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {status.error && (
+                                <div style={{ marginTop: 8, fontSize: 12, color: '#ffdddd' }}>Ошибка: {status.error}</div>
+                            )}
+                        </div>
+                    )}
+                </Panel>
+            </div>
         </>
     )
 }

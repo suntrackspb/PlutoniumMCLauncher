@@ -26,6 +26,14 @@ export type ClientInfo = {
   hash: string
   required_java: string
   description: string
+  loader?: string
+}
+
+export type InstalledVersion = {
+  id: string
+  hasJar: boolean
+  hasJson: boolean
+  kind: 'vanilla' | 'forge' | 'fabric' | 'quilt' | 'neoforge' | 'unknown'
 }
 
 export type LauncherSettings = {
@@ -61,6 +69,7 @@ declare global {
         reinstall: () => Promise<{ path: string }>
         openDir: () => Promise<{ opened: boolean; dir: string }>
         onInstallProgress: (cb: (payload: { stage: string; percent?: number }) => void) => () => void
+        listVersions: () => Promise<InstalledVersion[]>
       }
       server: {
         status: () => Promise<{

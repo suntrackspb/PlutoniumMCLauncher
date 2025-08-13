@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, shell } from 'electron'
 import { IPC_CHANNELS } from './channels'
-import { getClientInfo, installClient, getInstallDir, isClientInstalled, getGameDir } from '../services/clientInstaller'
+import { getClientInfo, installClient, getInstallDir, isClientInstalled, getGameDir, listAvailableVersions } from '../services/clientInstaller'
 import fs from 'fs-extra'
 
 export function registerClientHandlers(): void {
@@ -20,6 +20,7 @@ export function registerClientHandlers(): void {
             if (win) win.webContents.send('client/install/progress', { stage, percent })
         })
     })
+    ipcMain.handle(IPC_CHANNELS.CLIENT_LIST_VERSIONS, async () => listAvailableVersions())
     ipcMain.handle(IPC_CHANNELS.GAME_OPEN_DIR, async () => {
         const dir = getInstallDir()
         try {
